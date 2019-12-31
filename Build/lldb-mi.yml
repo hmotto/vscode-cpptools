@@ -1,5 +1,5 @@
 variables:
-  llvmTag: llvmorg-8.0.1
+  llvmTag: llvmorg-9.0.1
 
 jobs:
 - job: LLDB_MI
@@ -43,8 +43,7 @@ jobs:
         mkdir $(Build.StagingDirectory)/llvm-build
         cd $(Build.StagingDirectory)/llvm-build
 
-        echo "##[command] cmake -DLLVM_ENABLE_PROJECTS="clang\;lldb\;libcxx\;libcxxabi" -DCMAKE_INSTALL_PREFIX=$(Build.StagingDirectory)/buildspace/llvm-inst/ -GNinja $(Build.StagingDirectory)/llvm-project/llvm"
-        cmake -DLLVM_ENABLE_PROJECTS="clang;lldb;libcxx;libcxxabi" -DCMAKE_INSTALL_PREFIX=$(Build.StagingDirectory)/buildspace/llvm-inst/ -GNinja $(Build.StagingDirectory)/llvm-project/llvm
+        cmake -DLLVM_ENABLE_PROJECTS="clang;lldb" -DCMAKE_INSTALL_PREFIX=$(Build.StagingDirectory)/buildspace/llvm-inst/ -DCMAKE_OSX_ARCHITECTURES="x86_64" -DLLDB_RELOCATABLE_PYTHON=1 -GNinja $(Build.StagingDirectory)/llvm-project/llvm
         if [[ $? -ne 0 ]]
         then
           echo "##[error] cmake llvm failed"
@@ -80,22 +79,20 @@ jobs:
         cmake -DCMAKE_PREFIX_PATH=$(Build.StagingDirectory)/buildspace/llvm-inst/ -GNinja ..
         ninja
 
-  - task: PublishPipelineArtifact@1
-    displayName: 'Publish LLVM Binaries'
-    inputs:
-      targetPath: '$(Build.StagingDirectory)/buildspace/llvm-inst/bin'
-      artifactName: 'llvm-binaries'
+        mkdir $(Build.StagingDirectory)/publish
+        cd $(Build.StagingDirectory)/publish
 
-  - task: PublishPipelineArtifact@1
-    displayName: 'Publish LLVM Library'
-    inputs:
-      targetPath: '$(Build.StagingDirectory)/buildspace/llvm-inst/lib'
-      artifactName: 'llvm-lib'
+        mkdir bin
+        mkdir lib
+
+        cp -r $(Build.StagingDirectory)/buildspace/llvm-inst/lib/python2.7 ./lib/.
+        cp $(Build.StagingDirectory)/buildspace/llvm-inst/lib/liblldb.dylib ./lib/.
+        cp $(Build.StagingDirectory)/buildspace/lldb-mi/build/src/lldb-mi ./bin/.
 
   - task: PublishPipelineArtifact@1
     displayName: 'Publish LLDB-MI'
     inputs:
-      targetPath: '$(Build.StagingDirectory)/buildspace/lldb-mi/build/src/lldb-mi'
+      targetPath: $(Build.StagingDirectory)/publish
       artifactName: 'lldb-mi'
 
 #   - task: CmdLine@2
